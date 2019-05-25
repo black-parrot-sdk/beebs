@@ -32,9 +32,9 @@
 
 /* Board repeat factor may be set in the board support header, if not, we
    define a default */
-
+//By default was 4096
 #ifndef BOARD_REPEAT_FACTOR
-#define BOARD_REPEAT_FACTOR 4096
+#define BOARD_REPEAT_FACTOR 2
 #endif
 
 /* Include chip support header if we have one */
