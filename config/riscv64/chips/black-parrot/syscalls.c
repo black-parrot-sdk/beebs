@@ -56,7 +56,6 @@ void setStats(int enable)
 void __attribute__((noreturn)) tohost_exit(uintptr_t code)
 {
   tohost = (code << 1) | 1;
-  while (1);
 }
 
 uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
@@ -66,11 +65,11 @@ uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uint
 
 void exit(int code)
 {
-  if (!code)
-    write_csr(0x800, 0);
-  else
-    write_csr(0x800, -1);
-  tohost_exit(code);
+  // TODO: make a global constant
+  write_csr(0x800, code);
+  uint64_t *finish_addr = 0x03002000;
+  *finish_addr = code;
+  while (1);
 }
 /*
 void bp_putchar(char c)
