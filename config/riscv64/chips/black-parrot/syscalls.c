@@ -3,176 +3,39 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <limits.h>
 #include <sys/signal.h>
-#include "util.h"
-
-#define SYS_write 64
+#include "encoding.h"
 
 #undef strcmp
-
-extern volatile uint64_t tohost;
-extern volatile uint64_t fromhost;
-
-static uintptr_t syscall(uintptr_t which, uint64_t arg0, uint64_t arg1, uint64_t arg2)
-{
-  volatile uint64_t magic_mem[8] __attribute__((aligned(64)));
-  magic_mem[0] = which;
-  magic_mem[1] = arg0;
-  magic_mem[2] = arg1;
-  magic_mem[3] = arg2;
-  __sync_synchronize();
-
-  tohost = (uintptr_t)magic_mem;
-  while (fromhost == 0)
-    ;
-  fromhost = 0;
-
-  __sync_synchronize();
-  return magic_mem[0];
-}
-
-#define NUM_COUNTERS 2
-static uintptr_t counters[NUM_COUNTERS];
-static char* counter_names[NUM_COUNTERS];
-
-void setStats(int enable)
-{
-  int i = 0;
-#define READ_CTR(name) do { \
-    while (i >= NUM_COUNTERS) ; \
-    uintptr_t csr = read_csr(name); \
-    if (!enable) { csr -= counters[i]; counter_names[i] = #name; } \
-    counters[i++] = csr; \
-  } while (0)
-
-  READ_CTR(mcycle);
-  READ_CTR(minstret);
-
-#undef READ_CTR
-}
-
-void __attribute__((noreturn)) tohost_exit(uintptr_t code)
-{
-  tohost = (code << 1) | 1;
-  while (1);
-}
-
-uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
-{
-  tohost_exit(1337);
-}
+#undef putchar
 
 void exit(int code)
 {
-  if (!code)
-    write_csr(0x800, 0);
-  else
-    write_csr(0x800, -1);
-  tohost_exit(code);
-}
-/*
-void bp_putchar(char c)
-{
-  //writes a character to bp's magic print address
-  char* ch_ptr;
-  ch_ptr = 0x8FFFFFFF;
-  *ch_ptr = c;
-} */
-
-void abort()
-{
-  exit(128 + SIGABRT);
+  write_csr(0x800, code);
+  uint64_t mhartid = read_csr(mhartid);
+  uint64_t *finish_address = (uint64_t*)(0x03002000 + (mhartid << 3));
+  *finish_address = code;
+  while (1);
 }
 
-void printstr(const char* s)
-{
-  syscall(SYS_write, 1, (uintptr_t)s, strlen(s));
+int putchar(int c) {
+  char ch = (char)c;
+  uint64_t mhartid = read_csr(mhartid);
+  char* ch_ptr = (char*)(0x03001000 + (mhartid << 3));
+  *ch_ptr = ch;
+  return 0;
 }
-
-void __attribute__((weak)) thread_entry(int cid, int nc)
-{
-  // multi-threaded programs override this function.
-  // for the case of single-threaded programs, only let core 0 proceed.
-  while (cid != 0);
-}
-
 
 //Main declared by both the configure script (during env probing) and the testsuite (to call the benchmarks)
 extern int main(int argc, char** argv);
 
-/*
-int __attribute__((weak)) main(int argc, char** argv)
-{
-  // single-threaded programs override this function.
-  //printstr("Implement main(), foo!\n");
-  printstr("HERE");
-  return -1;
-}
-*/
-
-
-static void init_tls()
-{
-  register void* thread_pointer asm("tp");
-  extern char _tls_data;
-  extern __thread char _tdata_begin, _tdata_end, _tbss_end;
-  size_t tdata_size = &_tdata_end - &_tdata_begin;
-  memcpy(thread_pointer, &_tls_data, tdata_size);
-  size_t tbss_size = &_tbss_end - &_tdata_end;
-  memset(thread_pointer + tdata_size, 0, tbss_size);
-}
-
 void _init(int cid, int nc)
 {
-  init_tls();
-  thread_entry(cid, nc);
-
   // only single-threaded programs should ever get here.
   int ret = main(0, 0);
- 
-  char buf[NUM_COUNTERS * 32] __attribute__((aligned(64)));
-  char* pbuf = buf;
-  for (int i = 0; i < NUM_COUNTERS; i++)
-    if (counters[i])
-      pbuf += sprintf(pbuf, "%s = %d\n", counter_names[i], counters[i]);
-  if (pbuf != buf)
-    printstr(buf);
 
   exit(ret);
-}
-/*
-#undef putchar
-int putchar(int ch)
-{
-  static __thread char buf[64] __attribute__((aligned(64)));
-  static __thread int buflen = 0;
-
-  buf[buflen++] = ch;
-
-  if (ch == '\n' || buflen == sizeof(buf))
-  {
-    syscall(SYS_write, 1, (uintptr_t)buf, buflen);
-    buflen = 0;
-  }
-
-  return 0;
-}
-*/
-
-void printhex(uint64_t x)
-{
-  char str[17];
-  int i;
-  for (i = 0; i < 16; i++)
-  {
-    str[15-i] = (x & 0xF) + ((x & 0xF) < 10 ? '0' : 'a'-10);
-    x >>= 4;
-  }
-  str[16] = 0;
-
-  printstr(str);
 }
 
 static inline void printnum(void (*putch)(int, void**), void **putdat,
@@ -338,7 +201,6 @@ static void vprintfmt(void (*putch)(int, void**), void **putdat, const char *fmt
 
     // pointer
     case 'p':
-      static_assert(sizeof(long) == sizeof(void*));
       lflag = 1;
       putch('0', putdat);
       putch('x', putdat);

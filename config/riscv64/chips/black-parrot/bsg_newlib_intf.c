@@ -1,27 +1,18 @@
 #include <stdlib.h>
 #include <machine/bsg_newlib_fs.h>
 
+extern int putchar(int c);
+
 void bsg_newlib_init(void) {
-
-    // Init file system
-    if(bsg_newlib_fs_init() < 0) {
-      exit(-1);
-    }
-}
-
-void bsg_newlib_exit(int exit_status) {
-  //EXIT_SUCCESS is 0 
-  if(exit_status == EXIT_SUCCESS) {
-    exit(0);
-  } else {
+  if(bsg_newlib_fs_init() < 0) {
     exit(-1);
   }
 }
 
-void bsg_newlib_sendchar(char ch) {
-  char* ch_ptr;
-  ch_ptr = 0x8FFFFFFF;
-  *ch_ptr = ch;
-  //putchar(ch);
+void bsg_newlib_exit(int exit_status) {
+  exit(exit_status);
+}
 
+void bsg_newlib_sendchar(char ch) {
+  putchar((int)ch);
 }
