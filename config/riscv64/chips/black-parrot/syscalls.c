@@ -12,7 +12,6 @@
 
 void exit(int code)
 {
-  write_csr(0x800, code);
   uint64_t mhartid = read_csr(mhartid);
   uint64_t *finish_address = (uint64_t*)(0x03002000 + (mhartid << 3));
   *finish_address = code;
