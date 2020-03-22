@@ -1,18 +1,18 @@
 #include <stdlib.h>
-#include <machine/bsg_newlib_fs.h>
+#include <machine/dramfs_fs.h>
 
 extern int putchar(int c);
 
-void bsg_newlib_init(void) {
-  if(bsg_newlib_fs_init() < 0) {
+void dramfs_init(void) {
+  if(dramfs_fs_init() < 0) {
     exit(-1);
   }
 }
 
-void bsg_newlib_exit(int exit_status) {
+void dramfs_exit(int exit_status) {
   exit(exit_status);
 }
 
-void bsg_newlib_sendchar(char ch) {
+void dramfs_sendchar(char ch) {
   putchar((int)ch);
 }
