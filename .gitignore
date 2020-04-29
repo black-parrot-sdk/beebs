@@ -27,3 +27,4 @@ config.h
 config.log
 config.status
 libtool
+*.riscv
