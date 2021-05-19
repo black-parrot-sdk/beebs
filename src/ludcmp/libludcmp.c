@@ -74,6 +74,7 @@
    You should have received a copy of the GNU General Public License
    along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
+#include <math.h>
 #include "support.h"
 
 /* This scale factor will be changed to equalise the runtime of the
@@ -195,14 +196,14 @@ int verify_benchmark(int unused)
   float exp_x[] = {1, 1, 0.999999821186065673828125, 1, 1.00000011920928955078125, 1};
   int i, j;
   for (i=0; i<6; i++) {
-    if (b[i] != exp_b[i])
+    if (fabs(b[i] - exp_b[i]) > 10E-5)
       return 0;
-    if (x[i] != exp_x[i])
+    if (fabs(x[i] - exp_x[i]) > 10E-5)
       return 0;
   }
   for (i=0; i<8; i++)
     for (j=0; j<9; j++)
-      if (a[i][j] != exp_a[i][j])
+      if (fabs(a[i][j] - exp_a[i][j]) > 10E-5)
         return 0;
 
   return 1;

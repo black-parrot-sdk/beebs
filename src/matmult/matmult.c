@@ -42,10 +42,7 @@
  * This is a program that was developed from mm.c to matmult.c by
  * Thomas Lundqvist at Chalmers.
  *----------------------------------------------------------------------*/
-#ifdef MATMULT_FLOAT
 #include <math.h>
-#endif /* MATMULT_FLOAT */
-
 #include "support.h"
 /* This scale factor will be changed to equalise the runtime of the
    benchmarks. */
@@ -220,7 +217,7 @@ int verify_benchmark(int unused)
 #endif
   for (i=0; i<UPPERLIMIT; i++)
     for (j=0; j<UPPERLIMIT; j++)
-      if (ResultArray[i][j] != exp[i][j])
+      if (fabs(ResultArray[i][j] - exp[i][j]) > 10E-4)
         return 0;
   return 1;
 }
